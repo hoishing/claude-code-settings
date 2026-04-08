@@ -1,0 +1,7 @@
+# 忽略根目錄所有內容
+/*
+!.gitignore
+!CLAUDE.md
+!skills/
+!settings.json
+!statusline.sh
