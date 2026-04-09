@@ -239,6 +239,12 @@ class BrowserDaemon:
                     return await self._wait(cmd)
                 case "get":
                     return await self._get(cmd)
+                case "js":
+                    return await self._js(cmd["expression"])
+                case "cookie":
+                    return await self._cookie(cmd["name"], cmd["value"], cmd.get("url"))
+                case "viewport":
+                    return await self._viewport(cmd["width"], cmd["height"])
                 case "close":
                     return await self._close()
                 case _:
@@ -378,6 +384,9 @@ class BrowserDaemon:
         elif what == "title":
             return {"ok": True, "value": await self.page.title()}
         elif what == "text":
+            if "ref" not in cmd:
+                text = await self.page.inner_text("body")
+                return {"ok": True, "value": text}
             loc = await self._resolve_ref(cmd["ref"])
             text = await loc.text_content()
             return {"ok": True, "value": text}
@@ -390,6 +399,24 @@ class BrowserDaemon:
             html = await loc.inner_html()
             return {"ok": True, "value": html}
         return {"error": f"Unknown get target: {what}"}
+
+    async def _js(self, expression: str) -> dict:
+        result = await self.page.evaluate(expression)
+        # Ensure result is JSON-serializable
+        try:
+            json.dumps(result)
+        except (TypeError, ValueError):
+            result = str(result)
+        return {"ok": True, "value": result}
+
+    async def _cookie(self, name: str, value: str, url: str | None) -> dict:
+        cookie: dict = {"name": name, "value": value, "url": url or self.page.url}
+        await self.page.context.add_cookies([cookie])
+        return {"ok": True}
+
+    async def _viewport(self, width: int, height: int) -> dict:
+        await self.page.set_viewport_size({"width": width, "height": height})
+        return {"ok": True}
 
     async def _close(self) -> dict:
         if self.browser:
@@ -559,8 +586,8 @@ def format_result(result: dict, action: str) -> str:
             return result.get("snapshot", "")
         case "screenshot":
             return f"\u2713 Screenshot saved to {result.get('path', '?')}"
-        case "get":
-            return result.get("value", "")
+        case "get" | "js":
+            return str(result.get("value", ""))
         case "close":
             return "\u2713 Browser closed"
         case _:
@@ -633,6 +660,19 @@ def main():
     p_get = sub.add_parser("get", help="Get information")
     p_get.add_argument("what", choices=["text", "url", "title", "value", "html"])
     p_get.add_argument("ref", nargs="?", help="Element ref for text/value/html")
+
+    # js
+    p_js = sub.add_parser("js", help="Execute JavaScript")
+    p_js.add_argument("expression", help="JavaScript expression to evaluate")
+
+    # cookie
+    p_cookie = sub.add_parser("cookie", help="Set browser cookie")
+    p_cookie.add_argument("cookie", help="name=value pair")
+    p_cookie.add_argument("--url", help="Cookie URL scope (default: current page)")
+
+    # viewport
+    p_vp = sub.add_parser("viewport", help="Set viewport size")
+    p_vp.add_argument("size", help="WIDTHxHEIGHT (e.g. 375x812)")
 
     # close
     sub.add_parser("close", help="Close browser")
@@ -719,6 +759,17 @@ def _build_command(args) -> dict:
             if args.ref:
                 cmd["ref"] = args.ref
             return cmd
+        case "js":
+            return {"action": "js", "expression": args.expression}
+        case "cookie":
+            name, _, value = args.cookie.partition("=")
+            cmd = {"action": "cookie", "name": name, "value": value}
+            if args.url:
+                cmd["url"] = args.url
+            return cmd
+        case "viewport":
+            w, _, h = args.size.partition("x")
+            return {"action": "viewport", "width": int(w), "height": int(h)}
     return {}
 
 
