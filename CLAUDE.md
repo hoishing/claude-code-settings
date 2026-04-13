@@ -4,6 +4,7 @@
 - when merging pull requests, always use rebase and merge strategy
 - create agent teams to run tasks in parallel whenever possible
   - create devil's advocate, prefer /codex:adversarial-review skills for peer review
+- when researching functionality for cli, library, or packages, try context7 first before searching the web
 
 # Tech Stack
 
