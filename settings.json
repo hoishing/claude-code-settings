@@ -6,10 +6,10 @@
     "CLAUDE_CODE_DISABLE_AUTO_MEMORY": "true"
   },
   "permissions": {
-    "defaultMode": "bypassPermissions",
     "allow": [
       "mcp__pencil"
-    ]
+    ],
+    "defaultMode": "bypassPermissions"
   },
   "statusLine": {
     "type": "command",
@@ -32,6 +32,12 @@
       "source": {
         "source": "github",
         "repo": "openai/codex-plugin-cc"
+      }
+    },
+    "marketingskills": {
+      "source": {
+        "source": "github",
+        "repo": "coreyhaines31/marketingskills"
       }
     }
   },

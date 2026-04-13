@@ -1,5 +1,5 @@
 # /// script
-# requires-python = ">=3.12"
+# requires-python = ">=3.13"
 # dependencies = [
 #     "rebrowser-playwright",
 # ]
@@ -17,6 +17,7 @@ import argparse
 import asyncio
 import json
 import os
+import platform
 import random
 import re
 import signal
@@ -31,7 +32,25 @@ HOME_DIR = Path.home() / ".fingerprint-browser"
 SOCKET_PATH = HOME_DIR / "daemon.sock"
 PID_FILE = HOME_DIR / "daemon.pid"
 REFS_FILE = HOME_DIR / "refs.json"
-CHROMIUM_PATH = HOME_DIR / "chromium" / "Chromium.app" / "Contents" / "MacOS" / "Chromium"
+
+# Platform-specific fingerprint-chromium binary + fingerprint platform string.
+# macOS: fingerprint-chromium app bundle under ~/.fingerprint-browser/chromium/
+# Linux x86_64: ungoogled-chromium extracted under ~/.fingerprint-browser/chromium/
+# Linux aarch64: no upstream build exists — fall back to rebrowser-playwright's bundled
+#                chromium (CDP masking still applies, engine-level fingerprint spoofing does not).
+_SYS = platform.system()
+_MACH = platform.machine().lower()
+if _SYS == "Darwin":
+    FINGERPRINT_PLATFORM = "macos"
+    CHROMIUM_PATH = HOME_DIR / "chromium" / "Chromium.app" / "Contents" / "MacOS" / "Chromium"
+elif _SYS == "Linux":
+    FINGERPRINT_PLATFORM = "linux"
+    CHROMIUM_PATH = HOME_DIR / "chromium" / "chrome"
+else:
+    FINGERPRINT_PLATFORM = "windows"
+    CHROMIUM_PATH = HOME_DIR / "chromium" / "chrome.exe"
+
+HAS_FINGERPRINT_CHROMIUM = CHROMIUM_PATH.exists()
 
 INTERACTIVE_ROLES = frozenset({
     "link", "button", "textbox", "checkbox", "radio", "combobox", "listbox",
@@ -194,18 +213,23 @@ class BrowserDaemon:
         self.playwright = await async_playwright().start()
 
         launch_args = [
-            f"--fingerprint={self.seed}",
-            "--fingerprint-platform=macos",
-            "--fingerprint-brand=Chrome",
             "--disable-non-proxied-udp",
             "--disable-blink-features=AutomationControlled",
         ]
+        if HAS_FINGERPRINT_CHROMIUM:
+            launch_args = [
+                f"--fingerprint={self.seed}",
+                f"--fingerprint-platform={FINGERPRINT_PLATFORM}",
+                "--fingerprint-brand=Chrome",
+                *launch_args,
+            ]
 
         launch_kwargs = {
-            "executable_path": str(CHROMIUM_PATH),
             "args": launch_args,
             "headless": not self.headed,
         }
+        if HAS_FINGERPRINT_CHROMIUM:
+            launch_kwargs["executable_path"] = str(CHROMIUM_PATH)
 
         if self.proxy:
             launch_kwargs["proxy"] = {"server": self.proxy}

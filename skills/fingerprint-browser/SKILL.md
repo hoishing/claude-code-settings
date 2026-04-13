@@ -8,6 +8,21 @@ allowed-tools: Bash(uv run*fingerprint.py:*), Bash(fingerprint:*)
 
 Uses **fingerprint-chromium** (C++ engine-level fingerprint spoofing) + **rebrowser-playwright** (CDP signal masking) to bypass bot detection systems including Cloudflare.
 
+## Platform support
+
+The script detects the host platform and configures the browser automatically:
+
+| Platform | Browser | Fingerprint spoofing |
+|----------|---------|----------------------|
+| macOS (arm64 / x86_64) | `~/.fingerprint-browser/chromium/Chromium.app/Contents/MacOS/Chromium` (fingerprint-chromium) | full (engine-level + CDP) |
+| Linux x86_64 | `~/.fingerprint-browser/chromium/chrome` (fingerprint-chromium) | full (engine-level + CDP) |
+| Linux aarch64 | rebrowser-playwright bundled chromium (no upstream fingerprint-chromium aarch64 build) | CDP masking only |
+| Windows | `~/.fingerprint-browser/chromium/chrome.exe` | full (engine-level + CDP) |
+
+If the platform-specific fingerprint-chromium binary is missing, the script falls back to rebrowser-playwright's bundled chromium — CDP signal masking still applies, but `--fingerprint=*` engine-level args are dropped. Install fingerprint-chromium from https://github.com/adryfish/fingerprint-chromium/releases into `~/.fingerprint-browser/chromium/` to enable full spoofing.
+
+**Python 3.13+ required** on Linux aarch64: greenlet segfaults under Python 3.12 on that platform.
+
 ## Core Workflow
 
 Every automation follows the same pattern as agent-browser:
