@@ -43,8 +43,8 @@
   },
   "effortLevel": "high",
   "autoUpdatesChannel": "latest",
-  "voiceEnabled": true,
   "skipDangerousModePermissionPrompt": true,
+  "voiceEnabled": true,
   "preferences": {
     "tmuxSplitPanes": true
   }
