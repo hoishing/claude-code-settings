@@ -1,5 +1,5 @@
 #!/bin/bash
-# Claude Code statusline: Context % | 5h: % tokens (reset)
+# Claude Code statusline: Context % | 5h: % tokens (reset) | 7d: % (reset)
 exec 2>/dev/null
 
 input=$(cat)
@@ -15,10 +15,12 @@ parsed=$(printf '%s' "$input" | jq -r '[
   (.rate_limits.five_hour.used_percentage // null | if . then (. | round | tostring) else "null" end),
   (.rate_limits.five_hour.resets_at // "" | tostring),
   (.rate_limits.five_hour.tokens_used // null | if . then tostring else "null" end),
-  (.rate_limits.five_hour.tokens_limit // null | if . then tostring else "null" end)
+  (.rate_limits.five_hour.tokens_limit // null | if . then tostring else "null" end),
+  (.rate_limits.seven_day.used_percentage // null | if . then (. | round | tostring) else "null" end),
+  (.rate_limits.seven_day.resets_at // "" | tostring)
 ] | @tsv')
 
-IFS="$tab" read -r cwd model used_tokens window_size five_pct five_reset five_tok five_lim <<EOF
+IFS="$tab" read -r cwd model used_tokens window_size five_pct five_reset five_tok five_lim week_pct week_reset <<EOF
 $parsed
 EOF
 
@@ -116,4 +118,17 @@ else
   five_part="${DIM}5h: --${RESET}"
 fi
 
-printf "%b | %b | %b | %b\n" "${GREEN}${short_cwd}${RESET}" "${DIM}${model_short}${RESET}" "$context_part" "$five_part"
+# 7d part
+if [ "$week_pct" != "null" ] && [ -n "$week_pct" ]; then
+  wcolor=$(usage_color "$week_pct")
+  wreset_str=$(format_reset "$week_reset")
+  if [ -n "$wreset_str" ]; then
+    week_part="${DIM}7d:${RESET} ${wcolor}${week_pct}%${RESET} ${DIM}(${wreset_str})${RESET}"
+  else
+    week_part="${DIM}7d:${RESET} ${wcolor}${week_pct}%${RESET}"
+  fi
+else
+  week_part="${DIM}7d: --${RESET}"
+fi
+
+printf "%b | %b | %b | %b | %b\n" "${GREEN}${short_cwd}${RESET}" "${DIM}${model_short}${RESET}" "$context_part" "$five_part" "$week_part"
