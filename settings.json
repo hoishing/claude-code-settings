@@ -9,7 +9,8 @@
     "allow": [
       "mcp__pencil"
     ],
-    "defaultMode": "bypassPermissions"
+    "defaultMode": "bypassPermissions",
+    "disableAutoMode": "disable"
   },
   "statusLine": {
     "type": "command",
