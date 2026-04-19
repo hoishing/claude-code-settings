@@ -2,8 +2,7 @@
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
     "ENABLE_TOOL_SEARCH": "true",
-    "LOG_LEVEL": "warn",
-    "CLAUDE_CODE_DISABLE_AUTO_MEMORY": "true"
+    "LOG_LEVEL": "warn"
   },
   "permissions": {
     "allow": [
@@ -25,8 +24,7 @@
     "skill-creator@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": true,
     "claude-code-setup@claude-plugins-official": true,
-    "codex@openai-codex": true,
-    "frontend-design@claude-plugins-official": true
+    "codex@openai-codex": true
   },
   "extraKnownMarketplaces": {
     "openai-codex": {
